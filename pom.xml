@@ -33,6 +33,7 @@
         <developerConnection>scm:svn:https://svn.jboss.org/repos/apiviz/trunk</developerConnection>
     </scm>
 
+	<!-- 
     <distributionManagement>
         <repository>
             <id>repository.jboss.org</id>
@@ -43,6 +44,17 @@
             <id>snapshots.jboss.org</id>
             <name>JBoss.org Development Snapshot Repository</name>
             <url>https://snapshots.jboss.org/maven2</url>
+        </snapshotRepository>
+    </distributionManagement>
+	 -->
+ 	<distributionManagement>
+        <repository>
+            <id>cloud.archiva.internal</id>
+            <url>http://archiva.cliff.cloudburrito.com:8080/archiva/repository/internal/</url>
+        </repository>
+        <snapshotRepository>
+            <id>cloud.archiva.snapshots</id>
+            <url>http://archiva.cliff.cloudburrito.com:8080/archiva/repository/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
