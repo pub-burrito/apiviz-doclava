@@ -22,20 +22,38 @@
  */
 package org.jboss.apiviz;
 
-import com.sun.javadoc.*;
-import com.sun.tools.doclets.standard.Standard;
+import static org.jboss.apiviz.Constant.NEWLINE;
+import static org.jboss.apiviz.Constant.OPTION_CATEGORY;
+import static org.jboss.apiviz.Constant.OPTION_HELP;
+import static org.jboss.apiviz.Constant.OPTION_NO_PACKAGE_DIAGRAM;
+import static org.jboss.apiviz.Constant.OPTION_SHOW_FIELDS;
+import static org.jboss.apiviz.Constant.OPTION_SHOW_METHODS;
+import static org.jboss.apiviz.Constant.OPTION_SOURCE_CLASS_PATH;
+import static org.jboss.apiviz.Constant.TAG_CATEGORY;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import jdepend.framework.JDepend;
 import jdepend.framework.JavaClass;
 import jdepend.framework.JavaPackage;
 import jdepend.framework.PackageFilter;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.jboss.apiviz.Constant.*;
+import com.google.doclava.Doclava;
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.DocErrorReporter;
+import com.sun.javadoc.LanguageVersion;
+import com.sun.javadoc.PackageDoc;
+import com.sun.javadoc.RootDoc;
 
 /**
  * @author The APIviz Project (apiviz-dev@lists.jboss.org)
@@ -47,11 +65,11 @@ import static org.jboss.apiviz.Constant.*;
 public class APIviz {
 
     private static final Pattern INSERTION_POINT_PATTERN = Pattern.compile(
-            "((<\\/PRE>)(?=\\s*<P>)|(?=<TABLE BORDER=\"1\"))");
+            "((<\\/PRE>)(?=\\s*<P>)|(?=<TABLE BORDER=\"1\")|(?=<div class=\"contentContainer\")|(?=<div class=\"jd-descr\">))");
 
     public static boolean start(RootDoc root) {
         root = new APIvizRootDoc(root);
-        if (!Standard.start(root)) {
+        if (!Doclava.start(root)) {
             return false;
         }
 
@@ -64,12 +82,17 @@ public class APIviz {
 
         try {
             File outputDirectory = getOutputDirectory(root.options());
+            
+            root.printNotice( "Generating diagrams for files located under: " + outputDirectory );
+            
             ClassDocGraph graph = new ClassDocGraph(root);
+            
             if (shouldGeneratePackageDiagram(root.options())) {
                 generateOverviewSummary(root, graph, outputDirectory);
             }
             generatePackageSummaries(root, graph, outputDirectory);
             generateClassDiagrams(root, graph, outputDirectory);
+            
         } catch(Throwable t) {
             root.printError(
                     "An error occurred during diagram generation: " +
@@ -122,7 +145,7 @@ public class APIviz {
             newOptions.add(o);
         }
 
-        return Standard.validOptions(
+        return Doclava.validOptions(
                 newOptions.toArray(new String[newOptions.size()][]),
                 errorReporter);
     }
@@ -148,7 +171,7 @@ public class APIviz {
             return 1;
         }
 
-        int answer = Standard.optionLength(option);
+        int answer = Doclava.optionLength(option);
 
         if (option.equals(OPTION_HELP)) {
             // Print the options provided by APIviz.
@@ -168,11 +191,14 @@ public class APIviz {
     }
 
     public static LanguageVersion languageVersion() {
-        return Standard.languageVersion();
+        return Doclava.languageVersion();
     }
 
     private static void generateOverviewSummary(RootDoc root, ClassDocGraph graph, File outputDirectory) throws IOException {
         final Map<String, PackageDoc> packages = getPackages(root);
+        
+        root.printNotice( "Overview for packages: " + packages );
+        
         PackageFilter packageFilter = new PackageFilter() {
             @Override
             public boolean accept(String packageName) {
@@ -203,7 +229,7 @@ public class APIviz {
 
         if (checkClasspathOption(root, jdepend)) {
             instrumentDiagram(
-                    root, outputDirectory, "overview-summary",
+                    root, outputDirectory, "packages",
                     graph.getOverviewSummaryDiagram(jdepend));
         } else {
             root.printWarning(
@@ -260,6 +286,9 @@ public class APIviz {
 
     private static void generatePackageSummaries(RootDoc root, ClassDocGraph graph, File outputDirectory) throws IOException {
         for (PackageDoc p: getPackages(root).values()) {
+        	
+        	root.printNotice( "Summary for package: " + p.name() );
+        	
             instrumentDiagram(
                     root, outputDirectory,
                     p.name().replace('.', File.separatorChar) +
@@ -270,6 +299,9 @@ public class APIviz {
 
     private static void generateClassDiagrams(RootDoc root, ClassDocGraph graph, File outputDirectory) throws IOException {
         for (ClassDoc c: root.classes()) {
+        	
+        	root.printNotice( "Class diagram for: " + c.name() );
+        	
             if (c.containingPackage() == null) {
                 instrumentDiagram(
                         root, outputDirectory,
@@ -306,6 +338,8 @@ public class APIviz {
         File htmlFile = new File(outputDirectory, filename + ".html");
         File pngFile = new File(outputDirectory, filename + ".png");
         File mapFile = new File(outputDirectory, filename + ".map");
+        
+        root.printNotice( "html: " + htmlFile + ", png: " + pngFile + ", map: " + mapFile );
 
         if (!htmlFile.exists()) {
             // Shouldn't reach here anymore.
@@ -329,6 +363,7 @@ public class APIviz {
         }
 
         root.printNotice("Generating " + pngFile + "...");
+        
         Graphviz.writeImageAndMap(root, diagram, outputDirectory, filename);
 
         try {
@@ -358,7 +393,7 @@ public class APIviz {
     private static File getOutputDirectory(String[][] options) {
         for (String[] o: options) {
             if (o[0].equals("-d")) {
-                return new File(o[1]);
+                return new File(o[1] + "/" + Doclava.javadocDir);
             }
         }
 

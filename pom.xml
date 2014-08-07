@@ -122,6 +122,14 @@
     </profiles>
 
     <dependencies>
+    <!-- Base Doclet -->
+    	<dependency>
+    		<groupId>com.google.doclava</groupId>
+			<artifactId>doclava</artifactId>
+			<version>1.0.7-SNAPSHOT</version>
+			<scope>compile</scope>
+    	</dependency>
+			
     <!-- JDepend for package dependency analysis -->
         <dependency>
             <groupId>jdepend</groupId>

@@ -1,0 +1,11 @@
+@apiviz.stereotype
+@apiviz.uses
+@apiviz.has
+@apiviz.owns
+@apiviz.composedOf
+@apiviz.landmark
+@apiviz.hidden
+@apiviz.exclude
+@apiviz.excludeSubtypes
+@apiviz.inherit
+@apiviz.category
